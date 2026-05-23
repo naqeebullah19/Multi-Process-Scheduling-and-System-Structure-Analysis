@@ -8,15 +8,17 @@
 </head>
 <body>
   <header class="hero">
-    <div class="container hero-inner">
-      <div class="hero-content">
+    <div class="container hero-grid">
+      <div>
+        <p class="eyebrow">Operating Systems Project</p>
         <h1>CPU Scheduling Simulator</h1>
-        <p class="hero-text">
-          Visualize preemptive priority scheduling, round-robin execution, context switching,
+        <p class="assignment-title">Multi-Process Scheduling and System Structure Analysis</p>
+        <p class="hero-description">
+          Visualize priority-based CPU scheduling with Gantt charts, context switching,
           waiting time, turnaround time, and system performance analysis.
         </p>
 
-        <div class="feature-badges">
+        <div class="hero-badges">
           <span>Preemptive Priority</span>
           <span>Round Robin Tie-Breaking</span>
           <span>Gantt Chart</span>
@@ -24,44 +26,45 @@
         </div>
       </div>
 
-      <div class="hero-card">
-        <span>Current Mode</span>
+      <div class="hero-panel">
+        <span>Simulation Mode</span>
         <strong>Priority + RR</strong>
-        <small>Context-aware scheduling simulation</small>
+        <small>Designed for scheduling analysis and viva explanation</small>
       </div>
     </div>
   </header>
 
-  <main class="container page-grid">
-    <section class="panel full-width">
-      <div class="section-title">
+  <main class="container dashboard">
+    <section class="card full">
+      <div class="card-header">
         <div>
           <p class="eyebrow">Input</p>
           <h2>Process Configuration</h2>
         </div>
 
-        <div class="button-row">
-          <button id="addProcessBtn" class="secondary-btn">Add Process</button>
-          <button id="resetBtn" class="secondary-btn">Reset</button>
+        <div class="button-group">
+          <button id="addProcessBtn" class="btn secondary">Add Process</button>
+          <button id="resetBtn" class="btn secondary">Reset</button>
         </div>
       </div>
 
-      <p class="helper-text">
-        Lower priority number means higher priority. Round Robin is used when multiple processes have the same priority.
-      </p>
+      <div class="info-note">
+        Lower priority number means higher priority. If two processes have the same priority,
+        Round Robin is applied using the selected time quantum.
+      </div>
 
-      <div id="validationBox" class="validation-box hidden"></div>
+      <div id="validationBox" class="validation hidden"></div>
 
-      <div class="table-wrapper">
-        <table class="input-table">
+      <div class="table-wrap">
+        <table>
           <thead>
             <tr>
-              <th title="Unique process ID such as P1, P2, P3">Process</th>
-              <th title="Short service or process name">Service</th>
+              <th title="Unique process ID">Process</th>
+              <th title="Process/service name">Service</th>
               <th title="Lower number means higher priority">Priority</th>
-              <th title="Time at which the process enters ready queue">Arrival Time</th>
-              <th title="Total CPU time required by process">Burst Time</th>
-              <th title="Remove this process from simulation">Action</th>
+              <th title="Time when process enters ready queue">Arrival</th>
+              <th title="Total CPU time required">Burst</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="processTable"></tbody>
@@ -73,10 +76,10 @@
           Scheduling Algorithm
           <select id="algorithmSelect">
             <option value="priority_rr">Preemptive Priority + RR</option>
-            <option value="non_preemptive" disabled>Non-Preemptive Priority coming soon</option>
-            <option value="rr" disabled>Round Robin coming soon</option>
-            <option value="fcfs" disabled>FCFS coming soon</option>
-            <option value="sjf" disabled>SJF coming soon</option>
+            <option disabled>Non-Preemptive Priority — coming soon</option>
+            <option disabled>Round Robin — coming soon</option>
+            <option disabled>FCFS — coming soon</option>
+            <option disabled>SJF — coming soon</option>
           </select>
         </label>
 
@@ -86,21 +89,21 @@
         </label>
 
         <label>
-          Context Switch Time
+          Context Switch
           <input id="contextInput" type="number" min="0" value="1" />
         </label>
 
         <label>
-          Gantt Chart Limit
+          Chart Limit
           <input id="limitInput" type="number" min="5" value="30" />
         </label>
 
-        <button id="runBtn" class="primary-btn">Run Simulation</button>
+        <button id="runBtn" class="btn primary">Run Simulation</button>
       </div>
     </section>
 
-    <section class="panel full-width">
-      <div class="section-title">
+    <section class="card full">
+      <div class="card-header">
         <div>
           <p class="eyebrow">Examples</p>
           <h2>Example Scenarios</h2>
@@ -115,86 +118,75 @@
       </div>
     </section>
 
-    <section class="panel full-width">
-      <div class="section-title">
-        <div>
-          <p class="eyebrow">Summary</p>
-          <h2>Simulation Summary</h2>
-        </div>
-      </div>
-
-      <div class="summary-grid">
-        <div class="metric-card">
-          <span>Total Processes</span>
-          <strong id="totalProcesses">0</strong>
-        </div>
-        <div class="metric-card">
-          <span>Average Waiting Time</span>
-          <strong id="summaryAvgWaiting">0 ms</strong>
-        </div>
-        <div class="metric-card">
-          <span>Average Turnaround Time</span>
-          <strong id="summaryAvgTurnaround">0 ms</strong>
-        </div>
-        <div class="metric-card">
-          <span>Total Context Switches</span>
-          <strong id="summaryContextSwitches">0</strong>
-        </div>
-        <div class="metric-card">
-          <span>CPU Utilization</span>
-          <strong id="summaryCpuUtilization">0%</strong>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel full-width">
-      <div class="section-title">
+    <section class="card full output-card">
+      <div class="card-header">
         <div>
           <p class="eyebrow">Output</p>
-          <h2>Gantt Chart</h2>
+          <h2>Scheduling Results</h2>
         </div>
 
-        <div class="button-row">
-          <button id="downloadPngBtn" class="secondary-btn">Download PNG</button>
-          <button id="exportPdfBtn" class="secondary-btn">Export PDF</button>
+        <div class="button-group">
+          <button id="downloadPngBtn" class="btn secondary">Download Gantt PNG</button>
+          <button id="exportPdfBtn" class="btn secondary">Export PDF</button>
         </div>
       </div>
 
-      <div id="ganttLegend" class="gantt-legend"></div>
-      <div id="ganttChart" class="gantt-chart"></div>
+      <div id="emptyState" class="empty-state">
+        <h3>Run the simulation to generate results</h3>
+        <p>
+          The Gantt chart, scheduling metrics, waiting time, turnaround time,
+          and response time will appear here after simulation.
+        </p>
+      </div>
 
-      <div class="note-box">
-        Context switching is shown as <strong>CS</strong>. Hover over a block to view process name, start time, end time, and duration.
+      <div id="resultsArea" class="hidden">
+        <div class="summary-grid">
+          <div class="summary-card">
+            <span>Average Waiting Time</span>
+            <strong id="summaryAvgWaiting">0 ms</strong>
+          </div>
+          <div class="summary-card">
+            <span>Average Turnaround Time</span>
+            <strong id="summaryAvgTurnaround">0 ms</strong>
+          </div>
+          <div class="summary-card">
+            <span>Total Context Switches</span>
+            <strong id="summaryContextSwitches">0</strong>
+          </div>
+          <div class="summary-card">
+            <span>CPU Utilization</span>
+            <strong id="summaryCpuUtilization">0%</strong>
+          </div>
+        </div>
+
+        <div class="gantt-section">
+          <div class="mini-heading">
+            <h3>Gantt Chart</h3>
+            <p>Process execution timeline with context switching.</p>
+          </div>
+
+          <div id="ganttLegend" class="legend"></div>
+          <div id="ganttChart" class="gantt-chart"></div>
+        </div>
+
+        <div id="logicExplanation" class="logic-box"></div>
       </div>
     </section>
 
-    <section class="panel full-width">
-      <div class="section-title">
-        <div>
-          <p class="eyebrow">Explanation</p>
-          <h2>Scheduling Logic</h2>
-        </div>
-      </div>
-
-      <div id="logicExplanation" class="explanation-box">
-        Run the simulation to view scheduling explanation.
-      </div>
-    </section>
-
-    <section class="panel full-width">
-      <div class="section-title">
+    <section id="calculationSection" class="card full hidden">
+      <div class="card-header">
         <div>
           <p class="eyebrow">Calculations</p>
           <h2>Waiting Time and Turnaround Time</h2>
         </div>
 
-        <div class="button-row">
-          <button id="copyTableBtn" class="secondary-btn">Copy Table</button>
-          <button id="downloadCsvBtn" class="secondary-btn">Download CSV</button>
+        <div class="button-group">
+          <button id="copyTableBtn" class="btn secondary">Copy Table</button>
+          <button id="downloadCsvBtn" class="btn secondary">Download CSV</button>
         </div>
       </div>
 
-      <div class="table-wrapper">
+      <div class="table-wrap">
         <table id="resultsTable">
           <thead>
             <tr>
@@ -220,8 +212,8 @@
       </div>
     </section>
 
-    <section class="panel full-width">
-      <div class="section-title">
+    <section class="card full">
+      <div class="card-header">
         <div>
           <p class="eyebrow">Part B</p>
           <h2>System Structure Evaluation</h2>
@@ -230,87 +222,89 @@
 
       <div class="analysis-grid two">
         <article class="analysis-card">
-          <span class="card-label">Card 1</span>
-          <h3>Likely Kernel Structure</h3>
+          <span>Likely Kernel Structure</span>
+          <h3>Hybrid Kernel</h3>
           <p>
-            This system is likely using a hybrid kernel because it needs both performance and modularity.
-            A cloud-based university management system handles scheduling, I/O, multiprocessing, and kernel-level threading.
+            A hybrid kernel is suitable because the system needs strong performance for process scheduling,
+            I/O handling, multiprocessing, and kernel-level threading, while still keeping the design modular.
           </p>
         </article>
 
         <article class="analysis-card">
-          <span class="card-label">Card 2</span>
+          <span>Threading Model</span>
           <h3>Kernel-Level Threads</h3>
           <p>
-            Kernel-level threads allow the operating system to schedule threads directly across CPU cores.
-            If one thread blocks for I/O, other threads can continue running.
+            Kernel-level threads allow the operating system to schedule threads across CPU cores.
+            If one thread blocks for I/O, other threads can continue execution.
           </p>
         </article>
       </div>
     </section>
 
-    <section class="panel full-width">
-      <div class="section-title">
+    <section class="card full">
+      <div class="card-header">
         <div>
           <p class="eyebrow">Part C</p>
-          <h2>Bottleneck Analysis</h2>
+          <h2>Performance and Bottleneck Analysis</h2>
         </div>
       </div>
 
       <div class="analysis-grid three">
         <article class="analysis-card">
-          <span class="card-label">Bottleneck 1</span>
+          <span>Bottleneck 1</span>
           <h3>CPU Starvation</h3>
-          <p>Low-priority processes may wait too long if high-priority processes keep entering the ready queue.</p>
+          <p>Low-priority processes may wait too long if high-priority processes keep using the CPU.</p>
         </article>
 
         <article class="analysis-card">
-          <span class="card-label">Bottleneck 2</span>
+          <span>Bottleneck 2</span>
           <h3>I/O Delay</h3>
-          <p>Database backup can slow down storage access and affect other services that depend on disk operations.</p>
+          <p>Database backup can slow down disk operations and affect services that depend on storage.</p>
         </article>
 
         <article class="analysis-card">
-          <span class="card-label">Bottleneck 3</span>
+          <span>Bottleneck 3</span>
           <h3>Context Switching Overhead</h3>
-          <p>Frequent process changes waste CPU time because the system must save and restore process states.</p>
+          <p>Frequent switching wastes CPU time because process states must be saved and restored.</p>
         </article>
       </div>
     </section>
 
-    <section class="panel full-width">
-      <div class="section-title">
+    <section class="card full">
+      <div class="card-header">
         <div>
           <p class="eyebrow">Part D</p>
-          <h2>Critical Thinking</h2>
+          <h2>Critical Thinking Scenario</h2>
         </div>
       </div>
 
       <div class="analysis-grid three">
         <article class="analysis-card">
-          <span class="card-label">Scenario</span>
-          <h3>If P3 Becomes CPU-Intensive</h3>
-          <p>P3 will dominate CPU execution because it has the highest priority.</p>
+          <span>Scenario</span>
+          <h3>P3 Becomes CPU-Intensive</h3>
+          <p>P3 will dominate execution because it has the highest priority in the scheduling order.</p>
         </article>
 
         <article class="analysis-card">
-          <span class="card-label">Impact</span>
+          <span>Impact</span>
           <h3>Reduced Fairness</h3>
-          <p>Other processes may experience long waiting times, lower throughput, and possible starvation.</p>
+          <p>Lower-priority processes may experience longer waiting time, lower throughput, and starvation.</p>
         </article>
 
         <article class="analysis-card">
-          <span class="card-label">Solution</span>
-          <h3>Control CPU Usage</h3>
-          <p>Aging, priority adjustment, and CPU usage limits can reduce starvation and improve fairness.</p>
+          <span>Improvement</span>
+          <h3>Aging and Priority Control</h3>
+          <p>Aging, priority adjustment, and CPU usage limits can improve fairness and responsiveness.</p>
         </article>
       </div>
     </section>
   </main>
 
   <footer class="footer">
-    <p>CPU Scheduling Simulator</p>
-    <p>Developed by Naqeebullah</p>
+    <strong>Operating Systems Project</strong>
+    <span>CPU Scheduling Simulator</span>
+    <span>Developed by Naqeebullah</span>
+    <small>Built for educational simulation of CPU scheduling algorithms.</small>
   </footer>
 
   <script src="app.js"></script>

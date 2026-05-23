@@ -1,72 +1,39 @@
-const processColors = ["#D8E2DC", "#FFE5D9", "#DDE5B6", "#EADCF8", "#D7E3FC", "#FDE2E4", "#E2ECE9"];
+const processColors = ["#D8E2DC", "#FFE5D9", "#DDE5B6", "#EADCF8", "#D7E3FC", "#FDE2E4"];
 
 const defaultProcesses = [
-  {
-    id: "P1",
-    service: "Student registration service",
-    priority: 3,
-    arrival: 0,
-    burst: 9,
-    color: processColors[0]
-  },
-  {
-    id: "P2",
-    service: "Database backup process",
-    priority: 5,
-    arrival: 0,
-    burst: 12,
-    color: processColors[1]
-  },
-  {
-    id: "P3",
-    service: "Real-time attendance tracking",
-    priority: 1,
-    arrival: 0,
-    burst: 7,
-    color: processColors[2]
-  },
-  {
-    id: "P4",
-    service: "Report generation module",
-    priority: 4,
-    arrival: 0,
-    burst: 8,
-    color: processColors[3]
-  },
-  {
-    id: "P5",
-    service: "Security monitoring daemon",
-    priority: 2,
-    arrival: 0,
-    burst: 6,
-    color: processColors[4]
-  }
+  { id: "P1", service: "Registration", priority: 3, arrival: 0, burst: 9, color: processColors[0] },
+  { id: "P2", service: "Backup", priority: 5, arrival: 0, burst: 12, color: processColors[1] },
+  { id: "P3", service: "Attendance", priority: 1, arrival: 0, burst: 7, color: processColors[2] },
+  { id: "P4", service: "Report", priority: 4, arrival: 0, burst: 8, color: processColors[3] },
+  { id: "P5", service: "Security", priority: 2, arrival: 0, burst: 6, color: processColors[4] }
 ];
 
 let processes = structuredClone(defaultProcesses);
 let lastSimulation = null;
 
 const processTable = document.getElementById("processTable");
-const resultTable = document.getElementById("resultTable");
+const validationBox = document.getElementById("validationBox");
+const emptyState = document.getElementById("emptyState");
+const resultsArea = document.getElementById("resultsArea");
+const calculationSection = document.getElementById("calculationSection");
+
 const ganttChart = document.getElementById("ganttChart");
 const ganttLegend = document.getElementById("ganttLegend");
-const validationBox = document.getElementById("validationBox");
+const resultTable = document.getElementById("resultTable");
 const logicExplanation = document.getElementById("logicExplanation");
 
 const quantumInput = document.getElementById("quantumInput");
 const contextInput = document.getElementById("contextInput");
 const limitInput = document.getElementById("limitInput");
-const algorithmSelect = document.getElementById("algorithmSelect");
 
-const avgTat = document.getElementById("avgTat");
-const avgWt = document.getElementById("avgWt");
-const avgRt = document.getElementById("avgRt");
-
-const totalProcesses = document.getElementById("totalProcesses");
 const summaryAvgWaiting = document.getElementById("summaryAvgWaiting");
 const summaryAvgTurnaround = document.getElementById("summaryAvgTurnaround");
 const summaryContextSwitches = document.getElementById("summaryContextSwitches");
 const summaryCpuUtilization = document.getElementById("summaryCpuUtilization");
+
+const avgTat = document.getElementById("avgTat");
+const avgWt = document.getElementById("avgWt");
+const avgRt = document.getElementById("avgRt");
 
 document.getElementById("runBtn").addEventListener("click", runSimulation);
 document.getElementById("resetBtn").addEventListener("click", resetDefaults);
@@ -87,24 +54,12 @@ function renderProcessTable() {
     const row = document.createElement("tr");
 
     row.innerHTML = `
-      <td>
-        <input class="input-small" value="${process.id}" data-index="${index}" data-field="id" />
-      </td>
-      <td>
-        <input class="input-service" value="${process.service}" data-index="${index}" data-field="service" />
-      </td>
-      <td>
-        <input class="input-small editable-field" type="number" min="1" value="${process.priority}" data-index="${index}" data-field="priority" />
-      </td>
-      <td>
-        <input class="input-small editable-field" type="number" min="0" value="${process.arrival}" data-index="${index}" data-field="arrival" />
-      </td>
-      <td>
-        <input class="input-small editable-field" type="number" min="1" value="${process.burst}" data-index="${index}" data-field="burst" />
-      </td>
-      <td>
-        <button class="delete-btn" data-index="${index}">Delete</button>
-      </td>
+      <td><input class="input-small" value="${process.id}" data-index="${index}" data-field="id"></td>
+      <td><input class="input-service" value="${process.service}" data-index="${index}" data-field="service"></td>
+      <td><input class="input-small editable" type="number" min="1" value="${process.priority}" data-index="${index}" data-field="priority"></td>
+      <td><input class="input-small editable" type="number" min="0" value="${process.arrival}" data-index="${index}" data-field="arrival"></td>
+      <td><input class="input-small editable" type="number" min="1" value="${process.burst}" data-index="${index}" data-field="burst"></td>
+      <td><button class="delete-btn" data-index="${index}">Delete</button></td>
     `;
 
     processTable.appendChild(row);
@@ -116,10 +71,9 @@ function renderProcessTable() {
 
   processTable.querySelectorAll(".delete-btn").forEach((button) => {
     button.addEventListener("click", () => {
-      const index = Number(button.dataset.index);
-      processes.splice(index, 1);
+      processes.splice(Number(button.dataset.index), 1);
       renderProcessTable();
-      runSimulation();
+      showEmptyState();
     });
   });
 }
@@ -127,12 +81,11 @@ function renderProcessTable() {
 function updateProcessValue(event) {
   const index = Number(event.target.dataset.index);
   const field = event.target.dataset.field;
-  const value = event.target.value;
 
   if (field === "id" || field === "service") {
-    processes[index][field] = value;
+    processes[index][field] = event.target.value;
   } else {
-    processes[index][field] = Number(value);
+    processes[index][field] = Number(event.target.value);
   }
 }
 
@@ -144,34 +97,15 @@ function validateInputs() {
   }
 
   processes.forEach((process, index) => {
-    if (!process.id.trim()) {
-      errors.push(`Process ${index + 1}: Process ID is required.`);
-    }
-
-    if (!process.service.trim()) {
-      errors.push(`${process.id || "Process"}: Service name is required.`);
-    }
-
-    if (!Number.isFinite(process.priority) || process.priority <= 0) {
-      errors.push(`${process.id}: Priority must be greater than zero.`);
-    }
-
-    if (!Number.isFinite(process.arrival) || process.arrival < 0) {
-      errors.push(`${process.id}: Arrival time cannot be negative.`);
-    }
-
-    if (!Number.isFinite(process.burst) || process.burst <= 0) {
-      errors.push(`${process.id}: Burst time must be greater than zero.`);
-    }
+    if (!process.id.trim()) errors.push(`Process ${index + 1}: Process ID is required.`);
+    if (!process.service.trim()) errors.push(`${process.id || "Process"}: Service name is required.`);
+    if (!Number.isFinite(process.priority) || process.priority <= 0) errors.push(`${process.id}: Priority must be greater than 0.`);
+    if (!Number.isFinite(process.arrival) || process.arrival < 0) errors.push(`${process.id}: Arrival time cannot be negative.`);
+    if (!Number.isFinite(process.burst) || process.burst <= 0) errors.push(`${process.id}: Burst time must be greater than 0.`);
   });
 
-  if (Number(quantumInput.value) <= 0) {
-    errors.push("Time quantum must be greater than zero.");
-  }
-
-  if (Number(contextInput.value) < 0) {
-    errors.push("Context switch time cannot be negative.");
-  }
+  if (Number(quantumInput.value) <= 0) errors.push("Time quantum must be greater than 0.");
+  if (Number(contextInput.value) < 0) errors.push("Context switch time cannot be negative.");
 
   if (errors.length > 0) {
     validationBox.innerHTML = errors.map((error) => `<div>${error}</div>`).join("");
@@ -184,18 +118,19 @@ function validateInputs() {
 }
 
 function addProcess() {
-  const nextNumber = processes.length + 1;
+  const next = processes.length + 1;
 
   processes.push({
-    id: `P${nextNumber}`,
-    service: "New process",
-    priority: nextNumber,
+    id: `P${next}`,
+    service: "New Process",
+    priority: next,
     arrival: 0,
     burst: 5,
     color: processColors[processes.length % processColors.length]
   });
 
   renderProcessTable();
+  showEmptyState();
 }
 
 function simulatePriorityRR(inputProcesses, quantum, contextSwitchTime) {
@@ -230,12 +165,12 @@ function simulatePriorityRR(inputProcesses, quantum, contextSwitchTime) {
 
       timeline.push({
         id: "Idle",
-        service: "CPU idle",
+        service: "CPU Idle",
         start: time,
         end: nextArrival,
         color: "#F1F5F9",
-        isContextSwitch: false,
-        isIdle: true
+        isIdle: true,
+        isContextSwitch: false
       });
 
       time = nextArrival;
@@ -307,11 +242,148 @@ function simulatePriorityRR(inputProcesses, quantum, contextSwitchTime) {
     };
   });
 
-  return {
-    timeline,
-    results,
-    contextSwitches
-  };
+  return { timeline, results, contextSwitches };
+}
+
+function runSimulation() {
+  if (!validateInputs()) return;
+
+  const quantum = Number(quantumInput.value);
+  const contextSwitchTime = Number(contextInput.value);
+  const limit = Number(limitInput.value);
+
+  lastSimulation = simulatePriorityRR(processes, quantum, contextSwitchTime);
+
+  emptyState.classList.add("hidden");
+  resultsArea.classList.remove("hidden");
+  calculationSection.classList.remove("hidden");
+
+  renderSummary(lastSimulation);
+  renderLegend();
+  renderGanttChart(lastSimulation.timeline, limit);
+  renderResults(lastSimulation.results);
+  renderExplanation();
+}
+
+function renderSummary(simulation) {
+  const totalBurst = simulation.results.reduce((sum, item) => sum + item.burst, 0);
+  const finalTime = Math.max(...simulation.timeline.map((item) => item.end));
+  const cpuUtilization = finalTime > 0 ? (totalBurst / finalTime) * 100 : 0;
+
+  summaryAvgWaiting.textContent = `${average(simulation.results.map((item) => item.waiting)).toFixed(2)} ms`;
+  summaryAvgTurnaround.textContent = `${average(simulation.results.map((item) => item.turnaround)).toFixed(2)} ms`;
+  summaryContextSwitches.textContent = simulation.contextSwitches;
+  summaryCpuUtilization.textContent = `${cpuUtilization.toFixed(1)}%`;
+}
+
+function renderLegend() {
+  ganttLegend.innerHTML = "";
+
+  const items = [
+    ...processes.map((process, index) => ({
+      label: `${process.id} = ${process.service}`,
+      color: process.color || processColors[index % processColors.length]
+    })),
+    { label: "CS = Context Switch", color: "#E5E7EB" }
+  ];
+
+  items.forEach((item) => {
+    const legendItem = document.createElement("div");
+    legendItem.className = "legend-item";
+
+    legendItem.innerHTML = `
+      <span class="legend-color" style="background:${item.color}"></span>
+      <span>${item.label}</span>
+    `;
+
+    ganttLegend.appendChild(legendItem);
+  });
+}
+
+function renderGanttChart(timeline, limit) {
+  ganttChart.innerHTML = "";
+
+  const visibleTimeline = clipTimeline(mergeTimeline(timeline), limit);
+
+  visibleTimeline.forEach((segment) => {
+    const duration = segment.end - segment.start;
+    const block = document.createElement("div");
+
+    block.className = "gantt-block";
+    block.style.background = segment.color;
+    block.style.flex = String(Math.max(duration, 1));
+
+    block.dataset.tooltip =
+      `Process: ${segment.id}\n` +
+      `Name: ${segment.service}\n` +
+      `Start: ${segment.start} ms\n` +
+      `End: ${segment.end} ms\n` +
+      `Duration: ${duration} ms`;
+
+    block.innerHTML = `
+      <strong>${segment.id}</strong>
+      <span>${segment.service}</span>
+      <span class="time">${segment.start} - ${segment.end} ms</span>
+    `;
+
+    ganttChart.appendChild(block);
+  });
+}
+
+function renderResults(results) {
+  resultTable.innerHTML = "";
+
+  const avgWaiting = average(results.map((item) => item.waiting));
+  let totalTat = 0;
+  let totalWt = 0;
+  let totalRt = 0;
+
+  results.forEach((result) => {
+    totalTat += result.turnaround;
+    totalWt += result.waiting;
+    totalRt += result.response;
+
+    const waitingClass = result.waiting <= avgWaiting ? "waiting-good" : "waiting-bad";
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><strong>${result.id}</strong></td>
+      <td>${result.arrival} ms</td>
+      <td>${result.burst} ms</td>
+      <td>${result.completion} ms</td>
+      <td>${result.turnaround} ms</td>
+      <td class="${waitingClass}">${result.waiting} ms</td>
+      <td>${result.response} ms</td>
+    `;
+
+    resultTable.appendChild(row);
+  });
+
+  avgTat.textContent = `${(totalTat / results.length).toFixed(2)} ms`;
+  avgWt.textContent = `${(totalWt / results.length).toFixed(2)} ms`;
+  avgRt.textContent = `${(totalRt / results.length).toFixed(2)} ms`;
+}
+
+function renderExplanation() {
+  const highest = [...processes].sort((a, b) => a.priority - b.priority)[0];
+
+  const duplicatePriorities = processes
+    .filter((process, index, arr) =>
+      arr.some((other, otherIndex) => other.priority === process.priority && otherIndex !== index)
+    )
+    .map((process) => process.id);
+
+  const rrText = duplicatePriorities.length
+    ? `${[...new Set(duplicatePriorities)].join(", ")} share priority levels, so Round Robin is used for tie-breaking.`
+    : `No equal-priority conflict was found, so execution mainly follows priority order.`;
+
+  logicExplanation.innerHTML = `
+    <p>
+      <strong>How scheduling works:</strong>
+      ${highest.id} executes first because it has the highest priority. ${rrText}
+      A context switch is added whenever the CPU changes from one process to another.
+    </p>
+  `;
 }
 
 function mergeTimeline(timeline) {
@@ -346,161 +418,16 @@ function clipTimeline(timeline, limit) {
     .filter((segment) => segment.end > segment.start);
 }
 
-function renderGanttChart(timeline, limit) {
-  ganttChart.innerHTML = "";
-
-  const visibleTimeline = clipTimeline(mergeTimeline(timeline), limit);
-
-  visibleTimeline.forEach((segment) => {
-    const duration = segment.end - segment.start;
-    const block = document.createElement("div");
-
-    block.className = `gantt-block ${segment.isContextSwitch ? "cs" : ""}`;
-    block.style.background = segment.color;
-    block.style.flex = String(Math.max(duration, 1));
-
-    block.dataset.tooltip =
-      `Process: ${segment.id}\n` +
-      `Name: ${segment.service}\n` +
-      `Start: ${segment.start} ms\n` +
-      `End: ${segment.end} ms\n` +
-      `Duration: ${duration} ms`;
-
-    block.innerHTML = `
-      <strong>${segment.id}</strong>
-      <span>${segment.service}</span>
-      <span class="time">${segment.start} - ${segment.end} ms</span>
-    `;
-
-    ganttChart.appendChild(block);
-  });
-}
-
-function renderLegend() {
-  ganttLegend.innerHTML = "";
-
-  const items = [
-    ...processes.map((process, index) => ({
-      id: process.id,
-      color: process.color || processColors[index % processColors.length]
-    })),
-    {
-      id: "CS",
-      color: "#E5E7EB"
-    }
-  ];
-
-  items.forEach((item) => {
-    const element = document.createElement("div");
-    element.className = "legend-item";
-
-    element.innerHTML = `
-      <span class="legend-color" style="background:${item.color}"></span>
-      <span>${item.id}</span>
-    `;
-
-    ganttLegend.appendChild(element);
-  });
-}
-
-function renderResults(results) {
-  resultTable.innerHTML = "";
-
-  const waitingValues = results.map((result) => result.waiting);
-  const averageWaiting = average(waitingValues);
-
-  let totalTat = 0;
-  let totalWt = 0;
-  let totalRt = 0;
-
-  results.forEach((result) => {
-    totalTat += result.turnaround;
-    totalWt += result.waiting;
-    totalRt += result.response;
-
-    const row = document.createElement("tr");
-    const waitingClass = result.waiting <= averageWaiting ? "waiting-good" : "waiting-bad";
-
-    row.innerHTML = `
-      <td><strong>${result.id}</strong></td>
-      <td>${result.arrival} ms</td>
-      <td>${result.burst} ms</td>
-      <td>${result.completion} ms</td>
-      <td>${result.turnaround} ms</td>
-      <td class="${waitingClass}">${result.waiting} ms</td>
-      <td>${result.response} ms</td>
-    `;
-
-    resultTable.appendChild(row);
-  });
-
-  avgTat.textContent = `${(totalTat / results.length).toFixed(2)} ms`;
-  avgWt.textContent = `${(totalWt / results.length).toFixed(2)} ms`;
-  avgRt.textContent = `${(totalRt / results.length).toFixed(2)} ms`;
-}
-
-function renderSummary(simulation) {
-  const results = simulation.results;
-  const timeline = simulation.timeline;
-
-  const totalBurst = results.reduce((sum, item) => sum + item.burst, 0);
-  const lastEnd = Math.max(...timeline.map((item) => item.end));
-  const utilization = lastEnd > 0 ? (totalBurst / lastEnd) * 100 : 0;
-
-  totalProcesses.textContent = results.length;
-  summaryAvgWaiting.textContent = `${average(results.map((item) => item.waiting)).toFixed(2)} ms`;
-  summaryAvgTurnaround.textContent = `${average(results.map((item) => item.turnaround)).toFixed(2)} ms`;
-  summaryContextSwitches.textContent = simulation.contextSwitches;
-  summaryCpuUtilization.textContent = `${utilization.toFixed(1)}%`;
-}
-
-function renderExplanation(simulation) {
-  const sortedByPriority = [...processes].sort((a, b) => a.priority - b.priority);
-  const highest = sortedByPriority[0];
-
-  const duplicatePriorities = processes
-    .filter((process, index, array) => array.some((other, otherIndex) => other.priority === process.priority && otherIndex !== index))
-    .map((process) => process.id);
-
-  let rrText = "No same-priority tie was found, so processes mainly followed priority order.";
-
-  if (duplicatePriorities.length > 0) {
-    rrText = `${[...new Set(duplicatePriorities)].join(" and ")} shared priority levels, so Round Robin tie-breaking was used between them.`;
-  }
-
-  logicExplanation.innerHTML = `
-    <p>
-      <strong>${highest.id}</strong> executed first because it has the highest priority among the ready processes.
-      ${rrText}
-      Context switching was added whenever the CPU moved from one process to another.
-    </p>
-  `;
-}
-
 function average(values) {
-  if (values.length === 0) return 0;
+  if (!values.length) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function runSimulation() {
-  if (!validateInputs()) return;
-
-  const quantum = Number(quantumInput.value);
-  const contextSwitchTime = Number(contextInput.value);
-  const limit = Number(limitInput.value);
-
-  if (algorithmSelect.value !== "priority_rr") {
-    alert("Only Preemptive Priority + RR is implemented for this assignment.");
-    return;
-  }
-
-  lastSimulation = simulatePriorityRR(processes, quantum, contextSwitchTime);
-
-  renderLegend();
-  renderGanttChart(lastSimulation.timeline, limit);
-  renderResults(lastSimulation.results);
-  renderSummary(lastSimulation);
-  renderExplanation(lastSimulation);
+function showEmptyState() {
+  lastSimulation = null;
+  emptyState.classList.remove("hidden");
+  resultsArea.classList.add("hidden");
+  calculationSection.classList.add("hidden");
 }
 
 function resetDefaults() {
@@ -509,7 +436,7 @@ function resetDefaults() {
   contextInput.value = 1;
   limitInput.value = 30;
   renderProcessTable();
-  runSimulation();
+  showEmptyState();
 }
 
 function loadScenario(type) {
@@ -522,16 +449,16 @@ function loadScenario(type) {
       { id: "P1", service: "Registration", priority: 2, arrival: 0, burst: 8, color: processColors[0] },
       { id: "P2", service: "Backup", priority: 3, arrival: 0, burst: 10, color: processColors[1] },
       { id: "P3", service: "Attendance", priority: 1, arrival: 0, burst: 6, color: processColors[2] },
-      { id: "P4", service: "Reports", priority: 2, arrival: 0, burst: 7, color: processColors[3] }
+      { id: "P4", service: "Report", priority: 2, arrival: 0, burst: 7, color: processColors[3] }
     ];
   }
 
   if (type === "starvation") {
     processes = [
-      { id: "P1", service: "High priority service", priority: 1, arrival: 0, burst: 18, color: processColors[0] },
-      { id: "P2", service: "Low priority backup", priority: 5, arrival: 0, burst: 10, color: processColors[1] },
-      { id: "P3", service: "Security daemon", priority: 2, arrival: 0, burst: 12, color: processColors[2] },
-      { id: "P4", service: "Report module", priority: 4, arrival: 0, burst: 8, color: processColors[3] }
+      { id: "P1", service: "High Priority", priority: 1, arrival: 0, burst: 18, color: processColors[0] },
+      { id: "P2", service: "Backup", priority: 5, arrival: 0, burst: 10, color: processColors[1] },
+      { id: "P3", service: "Security", priority: 2, arrival: 0, burst: 12, color: processColors[2] },
+      { id: "P4", service: "Report", priority: 4, arrival: 0, burst: 8, color: processColors[3] }
     ];
   }
 
@@ -545,11 +472,11 @@ function loadScenario(type) {
   }
 
   renderProcessTable();
-  runSimulation();
+  showEmptyState();
 }
 
 function copyResultsTable() {
-  if (!lastSimulation) return;
+  if (!lastSimulation) return alert("Run the simulation first.");
 
   const rows = [
     ["Process", "Arrival", "Burst", "Completion", "Turnaround", "Waiting", "Response Time"],
@@ -564,13 +491,12 @@ function copyResultsTable() {
     ])
   ];
 
-  const text = rows.map((row) => row.join("\t")).join("\n");
-  navigator.clipboard.writeText(text);
+  navigator.clipboard.writeText(rows.map((row) => row.join("\t")).join("\n"));
   alert("Results table copied.");
 }
 
 function downloadCSV() {
-  if (!lastSimulation) return;
+  if (!lastSimulation) return alert("Run the simulation first.");
 
   const rows = [
     ["Process", "Arrival", "Burst", "Completion", "Turnaround", "Waiting", "Response Time"],
@@ -586,23 +512,19 @@ function downloadCSV() {
   ];
 
   const csv = rows.map((row) => row.join(",")).join("\n");
-  downloadFile("scheduling-results.csv", csv, "text/csv");
-}
-
-function downloadFile(filename, content, type) {
-  const blob = new Blob([content], { type });
+  const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = filename;
+  link.download = "scheduling-results.csv";
   link.click();
 
   URL.revokeObjectURL(url);
 }
 
 function downloadGanttPNG() {
-  if (!lastSimulation) return;
+  if (!lastSimulation) return alert("Run the simulation first.");
 
   const visibleTimeline = clipTimeline(mergeTimeline(lastSimulation.timeline), Number(limitInput.value));
   const canvas = document.createElement("canvas");
@@ -663,4 +585,4 @@ function roundRect(ctx, x, y, width, height, radius) {
 }
 
 renderProcessTable();
-runSimulation();
+showEmptyState();
