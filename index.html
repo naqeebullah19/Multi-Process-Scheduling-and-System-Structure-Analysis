@@ -8,63 +8,58 @@
 </head>
 <body>
   <header class="hero">
-    <div class="container hero-grid">
+    <div class="container hero-content">
       <div>
         <p class="eyebrow">Operating Systems Project</p>
         <h1>CPU Scheduling Simulator</h1>
-        <p class="assignment-title">Multi-Process Scheduling and System Structure Analysis</p>
-        <p class="hero-description">
-          Visualize priority-based CPU scheduling with Gantt charts, context switching,
-          waiting time, turnaround time, and system performance analysis.
+        <h2 class="subtitle">Multi-Process Scheduling and System Structure Analysis</h2>
+        <p class="hero-text">
+          Visualize preemptive priority scheduling, round-robin execution, FCFS, SJF,
+          context switching, waiting time, turnaround time, and system performance.
         </p>
-
-        <div class="hero-badges">
-          <span>Preemptive Priority</span>
-          <span>Round Robin Tie-Breaking</span>
-          <span>Gantt Chart</span>
-          <span>OS Analysis</span>
-        </div>
       </div>
 
-      <div class="hero-panel">
-        <span>Simulation Mode</span>
-        <strong>Priority + RR</strong>
-        <small>Designed for scheduling analysis and viva explanation</small>
+      <div class="hero-card">
+        <span>Algorithm</span>
+        <strong id="heroAlgorithm">Priority + RR</strong>
+        <small>Clean CPU scheduling simulation</small>
       </div>
     </div>
   </header>
 
-  <main class="container dashboard">
-    <section class="card full">
-      <div class="card-header">
+  <div id="stickySummary" class="sticky-summary hidden">
+    <div><span>Avg Waiting</span><strong id="stickyAvgWaiting">0 ms</strong></div>
+    <div><span>Avg Turnaround</span><strong id="stickyAvgTurnaround">0 ms</strong></div>
+    <div><span>CPU Utilization</span><strong id="stickyCpuUtilization">0%</strong></div>
+    <div><span>Completion</span><strong id="stickyCompletion">0 ms</strong></div>
+  </div>
+
+  <main class="container layout">
+    <section class="panel">
+      <div class="section-header">
         <div>
           <p class="eyebrow">Input</p>
           <h2>Process Configuration</h2>
         </div>
-
-        <div class="button-group">
-          <button id="addProcessBtn" class="btn secondary">Add Process</button>
-          <button id="resetBtn" class="btn secondary">Reset</button>
-        </div>
+        <button id="resetBtn" class="btn secondary">Reset</button>
       </div>
 
-      <div class="info-note">
+      <p class="note">
         Lower priority number means higher priority. If two processes have the same priority,
         Round Robin is applied using the selected time quantum.
-      </div>
+      </p>
 
       <div id="validationBox" class="validation hidden"></div>
 
-      <div class="table-wrap">
+      <div class="table-wrapper">
         <table>
           <thead>
             <tr>
-              <th title="Unique process ID">Process</th>
-              <th title="Process/service name">Service</th>
-              <th title="Lower number means higher priority">Priority</th>
-              <th title="Time when process enters ready queue">Arrival</th>
-              <th title="Total CPU time required">Burst</th>
-              <th>Action</th>
+              <th>Process</th>
+              <th>Service</th>
+              <th>Priority</th>
+              <th>Arrival</th>
+              <th>Burst</th>
             </tr>
           </thead>
           <tbody id="processTable"></tbody>
@@ -73,17 +68,20 @@
 
       <div class="controls">
         <label>
-          Scheduling Algorithm
-          <select id="algorithmSelect">
-            <option value="priority_rr">Preemptive Priority + RR</option>
-            <option disabled>Non-Preemptive Priority — coming soon</option>
-            <option disabled>Round Robin — coming soon</option>
-            <option disabled>FCFS — coming soon</option>
-            <option disabled>SJF — coming soon</option>
-          </select>
+          Algorithm
+          <div class="algorithm-row">
+            <select id="algorithmSelect">
+              <option value="priority_rr">Preemptive Priority + RR</option>
+              <option value="non_preemptive_priority">Non-Preemptive Priority</option>
+              <option value="rr">Round Robin</option>
+              <option value="fcfs">FCFS</option>
+              <option value="sjf">SJF</option>
+            </select>
+            <button id="algorithmInfoBtn" class="info-btn" type="button">ⓘ</button>
+          </div>
         </label>
 
-        <label>
+        <label id="quantumLabel">
           Time Quantum
           <input id="quantumInput" type="number" min="1" value="4" />
         </label>
@@ -100,42 +98,37 @@
 
         <button id="runBtn" class="btn primary">Run Simulation</button>
       </div>
-    </section>
 
-    <section class="card full">
-      <div class="card-header">
-        <div>
-          <p class="eyebrow">Examples</p>
-          <h2>Example Scenarios</h2>
-        </div>
-      </div>
+      <div id="algorithmInfoBox" class="algorithm-info hidden"></div>
 
-      <div class="scenario-grid">
-        <button class="scenario-btn" data-scenario="equal">Equal Arrival Times</button>
-        <button class="scenario-btn" data-scenario="samePriority">Same Priority Processes</button>
-        <button class="scenario-btn" data-scenario="starvation">Starvation Case</button>
-        <button class="scenario-btn" data-scenario="highSwitch">High Context Switching</button>
+      <div class="share-row">
+        <button id="copyUrlBtn" class="btn secondary">Copy Share URL</button>
       </div>
     </section>
 
-    <section class="card full output-card">
-      <div class="card-header">
+    <section class="panel">
+      <div class="section-header">
         <div>
           <p class="eyebrow">Output</p>
-          <h2>Scheduling Results</h2>
+          <h2>Simulation Results</h2>
         </div>
 
         <div class="button-group">
-          <button id="downloadPngBtn" class="btn secondary">Download Gantt PNG</button>
+          <button id="downloadPngBtn" class="btn secondary">Download PNG</button>
           <button id="exportPdfBtn" class="btn secondary">Export PDF</button>
         </div>
       </div>
 
       <div id="emptyState" class="empty-state">
+        <div class="empty-illustration">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
         <h3>Run the simulation to generate results</h3>
         <p>
           The Gantt chart, scheduling metrics, waiting time, turnaround time,
-          and response time will appear here after simulation.
+          and context-switch overhead will appear here after simulation.
         </p>
       </div>
 
@@ -143,51 +136,44 @@
         <div class="summary-grid">
           <div class="summary-card">
             <span>Average Waiting Time</span>
-            <strong id="summaryAvgWaiting">0 ms</strong>
+            <strong id="avgWaitingCard">0 ms</strong>
           </div>
+
           <div class="summary-card">
             <span>Average Turnaround Time</span>
-            <strong id="summaryAvgTurnaround">0 ms</strong>
+            <strong id="avgTurnaroundCard">0 ms</strong>
           </div>
+
           <div class="summary-card">
             <span>Total Context Switches</span>
-            <strong id="summaryContextSwitches">0</strong>
+            <strong id="contextSwitchCard">0</strong>
           </div>
+
           <div class="summary-card">
-            <span>CPU Utilization</span>
-            <strong id="summaryCpuUtilization">0%</strong>
+            <span>Total Completion Time</span>
+            <strong id="completionTimeCard">0 ms</strong>
           </div>
         </div>
 
-        <div class="gantt-section">
-          <div class="mini-heading">
-            <h3>Gantt Chart</h3>
-            <p>Process execution timeline with context switching.</p>
-          </div>
+        <div id="limitWarning" class="warning hidden"></div>
 
-          <div id="ganttLegend" class="legend"></div>
-          <div id="ganttChart" class="gantt-chart"></div>
-        </div>
-
-        <div id="logicExplanation" class="logic-box"></div>
+        <div class="legend" id="ganttLegend"></div>
+        <div class="gantt-chart" id="ganttChart"></div>
       </div>
     </section>
 
-    <section id="calculationSection" class="card full hidden">
-      <div class="card-header">
+    <section id="calculationPanel" class="panel hidden">
+      <div class="section-header">
         <div>
           <p class="eyebrow">Calculations</p>
           <h2>Waiting Time and Turnaround Time</h2>
         </div>
 
-        <div class="button-group">
-          <button id="copyTableBtn" class="btn secondary">Copy Table</button>
-          <button id="downloadCsvBtn" class="btn secondary">Download CSV</button>
-        </div>
+        <button id="downloadCsvBtn" class="btn secondary">Download CSV</button>
       </div>
 
-      <div class="table-wrap">
-        <table id="resultsTable">
+      <div class="table-wrapper">
+        <table>
           <thead>
             <tr>
               <th>Process</th>
@@ -196,7 +182,7 @@
               <th>Completion</th>
               <th>Turnaround</th>
               <th>Waiting</th>
-              <th>Response Time</th>
+              <th>Context Switch Overhead</th>
             </tr>
           </thead>
           <tbody id="resultTable"></tbody>
@@ -205,106 +191,120 @@
               <td colspan="4">Average</td>
               <td id="avgTat">0 ms</td>
               <td id="avgWt">0 ms</td>
-              <td id="avgRt">0 ms</td>
+              <td id="totalContextOverhead">0 ms</td>
             </tr>
           </tfoot>
         </table>
       </div>
     </section>
 
-    <section class="card full">
-      <div class="card-header">
-        <div>
-          <p class="eyebrow">Part B</p>
-          <h2>System Structure Evaluation</h2>
+    <section class="panel accordion-panel">
+      <button class="accordion-trigger" type="button">
+        <span>
+          <small>Part B</small>
+          System Structure Evaluation
+        </span>
+        <strong>+</strong>
+      </button>
+
+      <div class="accordion-content">
+        <div class="card-grid two">
+          <article class="info-card">
+            <span>Kernel Type</span>
+            <h3>Hybrid Kernel</h3>
+            <p>
+              This system is likely using a hybrid kernel because it needs strong performance for scheduling,
+              I/O handling, multiprocessing, and kernel-level threads while still keeping the design modular.
+            </p>
+          </article>
+
+          <article class="info-card">
+            <span>Threading</span>
+            <h3>Kernel-Level Threads</h3>
+            <p>
+              Kernel-level threads improve performance because the operating system can schedule threads directly
+              across CPU cores. If one thread blocks, another thread can continue running.
+            </p>
+          </article>
         </div>
-      </div>
-
-      <div class="analysis-grid two">
-        <article class="analysis-card">
-          <span>Likely Kernel Structure</span>
-          <h3>Hybrid Kernel</h3>
-          <p>
-            A hybrid kernel is suitable because the system needs strong performance for process scheduling,
-            I/O handling, multiprocessing, and kernel-level threading, while still keeping the design modular.
-          </p>
-        </article>
-
-        <article class="analysis-card">
-          <span>Threading Model</span>
-          <h3>Kernel-Level Threads</h3>
-          <p>
-            Kernel-level threads allow the operating system to schedule threads across CPU cores.
-            If one thread blocks for I/O, other threads can continue execution.
-          </p>
-        </article>
       </div>
     </section>
 
-    <section class="card full">
-      <div class="card-header">
-        <div>
-          <p class="eyebrow">Part C</p>
-          <h2>Performance and Bottleneck Analysis</h2>
+    <section class="panel accordion-panel">
+      <button class="accordion-trigger" type="button">
+        <span>
+          <small>Part C</small>
+          Performance and Bottleneck Analysis
+        </span>
+        <strong>+</strong>
+      </button>
+
+      <div class="accordion-content">
+        <div class="card-grid two">
+          <article class="info-card">
+            <span>Potential Bottlenecks</span>
+            <h3>System Issues</h3>
+            <ul>
+              <li>CPU starvation</li>
+              <li>I/O delay</li>
+              <li>Context switching overhead</li>
+            </ul>
+          </article>
+
+          <article class="info-card">
+            <span>Suggested Improvements</span>
+            <h3>Optimization Methods</h3>
+            <ul>
+              <li>Aging</li>
+              <li>Better I/O scheduling</li>
+              <li>Load balancing</li>
+            </ul>
+          </article>
         </div>
-      </div>
-
-      <div class="analysis-grid three">
-        <article class="analysis-card">
-          <span>Bottleneck 1</span>
-          <h3>CPU Starvation</h3>
-          <p>Low-priority processes may wait too long if high-priority processes keep using the CPU.</p>
-        </article>
-
-        <article class="analysis-card">
-          <span>Bottleneck 2</span>
-          <h3>I/O Delay</h3>
-          <p>Database backup can slow down disk operations and affect services that depend on storage.</p>
-        </article>
-
-        <article class="analysis-card">
-          <span>Bottleneck 3</span>
-          <h3>Context Switching Overhead</h3>
-          <p>Frequent switching wastes CPU time because process states must be saved and restored.</p>
-        </article>
       </div>
     </section>
 
-    <section class="card full">
-      <div class="card-header">
-        <div>
-          <p class="eyebrow">Part D</p>
-          <h2>Critical Thinking Scenario</h2>
+    <section class="panel accordion-panel">
+      <button class="accordion-trigger" type="button">
+        <span>
+          <small>Part D</small>
+          Critical Thinking
+        </span>
+        <strong>+</strong>
+      </button>
+
+      <div class="accordion-content">
+        <div class="card-grid three">
+          <article class="info-card">
+            <span>Scenario</span>
+            <h3>P3 Becomes CPU-Intensive</h3>
+            <p>
+              Since P3 has the highest priority, it will dominate CPU execution.
+            </p>
+          </article>
+
+          <article class="info-card">
+            <span>Impact</span>
+            <h3>Lower Fairness</h3>
+            <p>
+              Lower-priority processes may wait longer, causing starvation and reduced responsiveness.
+            </p>
+          </article>
+
+          <article class="info-card">
+            <span>Solution</span>
+            <h3>Priority Control</h3>
+            <p>
+              Aging, priority adjustment, and CPU usage limits can improve fairness and throughput.
+            </p>
+          </article>
         </div>
-      </div>
-
-      <div class="analysis-grid three">
-        <article class="analysis-card">
-          <span>Scenario</span>
-          <h3>P3 Becomes CPU-Intensive</h3>
-          <p>P3 will dominate execution because it has the highest priority in the scheduling order.</p>
-        </article>
-
-        <article class="analysis-card">
-          <span>Impact</span>
-          <h3>Reduced Fairness</h3>
-          <p>Lower-priority processes may experience longer waiting time, lower throughput, and starvation.</p>
-        </article>
-
-        <article class="analysis-card">
-          <span>Improvement</span>
-          <h3>Aging and Priority Control</h3>
-          <p>Aging, priority adjustment, and CPU usage limits can improve fairness and responsiveness.</p>
-        </article>
       </div>
     </section>
   </main>
 
   <footer class="footer">
-    <strong>Operating Systems Project</strong>
-    <span>CPU Scheduling Simulator</span>
-    <span>Developed by Naqeebullah</span>
-    <small>Built for educational simulation of CPU scheduling algorithms.</small>
+    Operating Systems Project · Developed by Naqeebullah
   </footer>
 
   <script src="app.js"></script>

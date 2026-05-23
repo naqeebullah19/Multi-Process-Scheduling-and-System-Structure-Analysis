@@ -1,50 +1,82 @@
-const processColors = ["#D8E2DC", "#FFE5D9", "#DDE5B6", "#EADCF8", "#D7E3FC", "#FDE2E4"];
+const colors = {
+  P1: "#D8E2DC",
+  P2: "#FFE5D9",
+  P3: "#DDE5B6",
+  P4: "#EADCF8",
+  P5: "#D7E3FC",
+  CS: "#E5E7EB",
+  Idle: "#F1F5F9"
+};
 
 const defaultProcesses = [
-  { id: "P1", service: "Registration", priority: 3, arrival: 0, burst: 9, color: processColors[0] },
-  { id: "P2", service: "Backup", priority: 5, arrival: 0, burst: 12, color: processColors[1] },
-  { id: "P3", service: "Attendance", priority: 1, arrival: 0, burst: 7, color: processColors[2] },
-  { id: "P4", service: "Report", priority: 4, arrival: 0, burst: 8, color: processColors[3] },
-  { id: "P5", service: "Security", priority: 2, arrival: 0, burst: 6, color: processColors[4] }
+  { id: "P1", service: "Registration", priority: 3, arrival: 0, burst: 9, color: colors.P1 },
+  { id: "P2", service: "Backup", priority: 5, arrival: 0, burst: 12, color: colors.P2 },
+  { id: "P3", service: "Attendance", priority: 1, arrival: 0, burst: 7, color: colors.P3 },
+  { id: "P4", service: "Report", priority: 4, arrival: 0, burst: 8, color: colors.P4 },
+  { id: "P5", service: "Security", priority: 2, arrival: 0, burst: 6, color: colors.P5 }
 ];
 
 let processes = structuredClone(defaultProcesses);
 let lastSimulation = null;
 
 const processTable = document.getElementById("processTable");
-const validationBox = document.getElementById("validationBox");
-const emptyState = document.getElementById("emptyState");
-const resultsArea = document.getElementById("resultsArea");
-const calculationSection = document.getElementById("calculationSection");
-
+const resultTable = document.getElementById("resultTable");
 const ganttChart = document.getElementById("ganttChart");
 const ganttLegend = document.getElementById("ganttLegend");
-const resultTable = document.getElementById("resultTable");
-const logicExplanation = document.getElementById("logicExplanation");
+const validationBox = document.getElementById("validationBox");
+const limitWarning = document.getElementById("limitWarning");
 
+const emptyState = document.getElementById("emptyState");
+const resultsArea = document.getElementById("resultsArea");
+const calculationPanel = document.getElementById("calculationPanel");
+const stickySummary = document.getElementById("stickySummary");
+
+const algorithmSelect = document.getElementById("algorithmSelect");
+const algorithmInfoBtn = document.getElementById("algorithmInfoBtn");
+const algorithmInfoBox = document.getElementById("algorithmInfoBox");
+const heroAlgorithm = document.getElementById("heroAlgorithm");
+
+const quantumLabel = document.getElementById("quantumLabel");
 const quantumInput = document.getElementById("quantumInput");
 const contextInput = document.getElementById("contextInput");
 const limitInput = document.getElementById("limitInput");
 
-const summaryAvgWaiting = document.getElementById("summaryAvgWaiting");
-const summaryAvgTurnaround = document.getElementById("summaryAvgTurnaround");
-const summaryContextSwitches = document.getElementById("summaryContextSwitches");
-const summaryCpuUtilization = document.getElementById("summaryCpuUtilization");
+const avgWaitingCard = document.getElementById("avgWaitingCard");
+const avgTurnaroundCard = document.getElementById("avgTurnaroundCard");
+const contextSwitchCard = document.getElementById("contextSwitchCard");
+const completionTimeCard = document.getElementById("completionTimeCard");
+
+const stickyAvgWaiting = document.getElementById("stickyAvgWaiting");
+const stickyAvgTurnaround = document.getElementById("stickyAvgTurnaround");
+const stickyCpuUtilization = document.getElementById("stickyCpuUtilization");
+const stickyCompletion = document.getElementById("stickyCompletion");
 
 const avgTat = document.getElementById("avgTat");
 const avgWt = document.getElementById("avgWt");
-const avgRt = document.getElementById("avgRt");
+const totalContextOverhead = document.getElementById("totalContextOverhead");
 
 document.getElementById("runBtn").addEventListener("click", runSimulation);
 document.getElementById("resetBtn").addEventListener("click", resetDefaults);
-document.getElementById("addProcessBtn").addEventListener("click", addProcess);
-document.getElementById("copyTableBtn").addEventListener("click", copyResultsTable);
 document.getElementById("downloadCsvBtn").addEventListener("click", downloadCSV);
-document.getElementById("downloadPngBtn").addEventListener("click", downloadGanttPNG);
+document.getElementById("downloadPngBtn").addEventListener("click", downloadPNG);
 document.getElementById("exportPdfBtn").addEventListener("click", () => window.print());
+document.getElementById("copyUrlBtn").addEventListener("click", copyShareUrl);
 
-document.querySelectorAll(".scenario-btn").forEach((button) => {
-  button.addEventListener("click", () => loadScenario(button.dataset.scenario));
+algorithmSelect.addEventListener("change", () => {
+  updateQuantumVisibility();
+  updateHeroAlgorithm();
+  showAlgorithmInfo(false);
+  updateUrlState();
+});
+
+algorithmInfoBtn.addEventListener("click", () => {
+  showAlgorithmInfo(algorithmInfoBox.classList.contains("hidden"));
+});
+
+document.querySelectorAll(".accordion-trigger").forEach((button) => {
+  button.addEventListener("click", () => {
+    button.closest(".accordion-panel").classList.toggle("open");
+  });
 });
 
 function renderProcessTable() {
@@ -54,58 +86,64 @@ function renderProcessTable() {
     const row = document.createElement("tr");
 
     row.innerHTML = `
-      <td><input class="input-small" value="${process.id}" data-index="${index}" data-field="id"></td>
-      <td><input class="input-service" value="${process.service}" data-index="${index}" data-field="service"></td>
-      <td><input class="input-small editable" type="number" min="1" value="${process.priority}" data-index="${index}" data-field="priority"></td>
-      <td><input class="input-small editable" type="number" min="0" value="${process.arrival}" data-index="${index}" data-field="arrival"></td>
-      <td><input class="input-small editable" type="number" min="1" value="${process.burst}" data-index="${index}" data-field="burst"></td>
-      <td><button class="delete-btn" data-index="${index}">Delete</button></td>
+      <td><strong>${process.id}</strong></td>
+      <td>${process.service}</td>
+      <td><input type="number" min="1" value="${process.priority}" data-index="${index}" data-field="priority" /></td>
+      <td><input type="number" min="0" value="${process.arrival}" data-index="${index}" data-field="arrival" /></td>
+      <td><input type="number" min="0" value="${process.burst}" data-index="${index}" data-field="burst" /></td>
     `;
 
     processTable.appendChild(row);
   });
 
   processTable.querySelectorAll("input").forEach((input) => {
-    input.addEventListener("input", updateProcessValue);
-  });
-
-  processTable.querySelectorAll(".delete-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      processes.splice(Number(button.dataset.index), 1);
-      renderProcessTable();
-      showEmptyState();
-    });
+    input.addEventListener("input", updateProcess);
   });
 }
 
-function updateProcessValue(event) {
+function updateProcess(event) {
   const index = Number(event.target.dataset.index);
   const field = event.target.dataset.field;
+  let value = Number(event.target.value);
 
-  if (field === "id" || field === "service") {
-    processes[index][field] = event.target.value;
-  } else {
-    processes[index][field] = Number(event.target.value);
-  }
+  if (field === "priority" && value < 1) value = 1;
+  if ((field === "arrival" || field === "burst") && value < 0) value = 0;
+
+  event.target.value = value;
+  processes[index][field] = value;
+
+  showEmptyState();
+  updateUrlState();
 }
 
 function validateInputs() {
   const errors = [];
 
-  if (processes.length === 0) {
-    errors.push("At least one process is required.");
-  }
+  processes.forEach((process) => {
+    if (!Number.isFinite(process.priority) || process.priority < 1) {
+      errors.push(`${process.id}: Priority must be 1 or higher.`);
+    }
 
-  processes.forEach((process, index) => {
-    if (!process.id.trim()) errors.push(`Process ${index + 1}: Process ID is required.`);
-    if (!process.service.trim()) errors.push(`${process.id || "Process"}: Service name is required.`);
-    if (!Number.isFinite(process.priority) || process.priority <= 0) errors.push(`${process.id}: Priority must be greater than 0.`);
-    if (!Number.isFinite(process.arrival) || process.arrival < 0) errors.push(`${process.id}: Arrival time cannot be negative.`);
-    if (!Number.isFinite(process.burst) || process.burst <= 0) errors.push(`${process.id}: Burst time must be greater than 0.`);
+    if (!Number.isFinite(process.arrival) || process.arrival < 0) {
+      errors.push(`${process.id}: Arrival time cannot be negative.`);
+    }
+
+    if (!Number.isFinite(process.burst) || process.burst < 0) {
+      errors.push(`${process.id}: Burst time cannot be negative.`);
+    }
   });
 
-  if (Number(quantumInput.value) <= 0) errors.push("Time quantum must be greater than 0.");
-  if (Number(contextInput.value) < 0) errors.push("Context switch time cannot be negative.");
+  if (Number(contextInput.value) < 0) {
+    errors.push("Context switch overhead cannot be negative.");
+  }
+
+  if (requiresQuantum() && Number(quantumInput.value) < 1) {
+    errors.push("Time quantum must be at least 1 for this algorithm.");
+  }
+
+  if (Number(limitInput.value) < 5) {
+    errors.push("Chart limit must be at least 5 ms.");
+  }
 
   if (errors.length > 0) {
     validationBox.innerHTML = errors.map((error) => `<div>${error}</div>`).join("");
@@ -117,39 +155,14 @@ function validateInputs() {
   return true;
 }
 
-function addProcess() {
-  const next = processes.length + 1;
-
-  processes.push({
-    id: `P${next}`,
-    service: "New Process",
-    priority: next,
-    arrival: 0,
-    burst: 5,
-    color: processColors[processes.length % processColors.length]
-  });
-
-  renderProcessTable();
-  showEmptyState();
-}
-
-function simulatePriorityRR(inputProcesses, quantum, contextSwitchTime) {
-  const jobs = inputProcesses.map((process, index) => ({
-    ...process,
-    color: process.color || processColors[index % processColors.length],
-    remaining: process.burst,
-    completion: null,
-    firstStart: null,
-    lastQueuedAt: process.arrival
-  }));
-
+function simulatePriorityRR(processList, quantum, contextSwitch) {
+  const jobs = makeJobs(processList);
   let time = 0;
   let completed = 0;
-  let lastProcessId = null;
+  let previousProcess = null;
   let contextSwitches = 0;
   const timeline = [];
-
-  const safetyLimit = jobs.reduce((sum, job) => sum + job.burst, 0) + 5000;
+  const safetyLimit = getSafetyLimit(jobs);
 
   while (completed < jobs.length && time <= safetyLimit) {
     const ready = jobs
@@ -161,59 +174,29 @@ function simulatePriorityRR(inputProcesses, quantum, contextSwitchTime) {
       });
 
     if (ready.length === 0) {
-      const nextArrival = Math.min(...jobs.filter((job) => job.remaining > 0).map((job) => job.arrival));
-
-      timeline.push({
-        id: "Idle",
-        service: "CPU Idle",
-        start: time,
-        end: nextArrival,
-        color: "#F1F5F9",
-        isIdle: true,
-        isContextSwitch: false
-      });
-
-      time = nextArrival;
-      lastProcessId = null;
+      time = addIdleBlock(jobs, timeline, time);
+      previousProcess = null;
       continue;
     }
 
     const current = ready[0];
 
-    if (lastProcessId && lastProcessId !== current.id && contextSwitchTime > 0) {
-      timeline.push({
-        id: "CS",
-        service: "Context Switch",
-        start: time,
-        end: time + contextSwitchTime,
-        color: "#E5E7EB",
-        isContextSwitch: true
-      });
-
-      time += contextSwitchTime;
+    if (previousProcess && previousProcess !== current.id && contextSwitch > 0) {
+      addContextSwitch(timeline, time, contextSwitch);
+      time += contextSwitch;
       contextSwitches++;
     }
 
-    if (current.firstStart === null) {
-      current.firstStart = time;
-    }
+    if (current.firstStart === null) current.firstStart = time;
 
-    const samePriorityReady = ready.filter((job) => job.priority === current.priority);
-    const runFor = samePriorityReady.length > 1
-      ? Math.min(quantum, current.remaining)
-      : current.remaining;
+    const samePriority = ready.filter((job) => job.priority === current.priority);
+    const nextHigherArrival = getNextHigherPriorityArrival(jobs, current, time);
+    const baseRunTime = samePriority.length > 1 ? Math.min(quantum, current.remaining) : current.remaining;
+    const runTime = nextHigherArrival === null ? baseRunTime : Math.min(baseRunTime, nextHigherArrival - time);
 
-    timeline.push({
-      id: current.id,
-      service: current.service,
-      start: time,
-      end: time + runFor,
-      color: current.color,
-      isContextSwitch: false
-    });
-
-    time += runFor;
-    current.remaining -= runFor;
+    addRunBlock(timeline, current, time, runTime);
+    time += runTime;
+    current.remaining -= runTime;
 
     if (current.remaining === 0) {
       current.completion = time;
@@ -222,108 +205,366 @@ function simulatePriorityRR(inputProcesses, quantum, contextSwitchTime) {
       current.lastQueuedAt = time;
     }
 
-    lastProcessId = current.id;
+    previousProcess = current.id;
   }
 
+  return finalizeSimulation(jobs, timeline, contextSwitches, time, safetyLimit);
+}
+
+function simulateNonPreemptivePriority(processList, contextSwitch) {
+  return simulateNonPreemptive(processList, contextSwitch, (a, b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    if (a.arrival !== b.arrival) return a.arrival - b.arrival;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+function simulateFCFS(processList, contextSwitch) {
+  return simulateNonPreemptive(processList, contextSwitch, (a, b) => {
+    if (a.arrival !== b.arrival) return a.arrival - b.arrival;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+function simulateSJF(processList, contextSwitch) {
+  return simulateNonPreemptive(processList, contextSwitch, (a, b) => {
+    if (a.burst !== b.burst) return a.burst - b.burst;
+    if (a.arrival !== b.arrival) return a.arrival - b.arrival;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+function simulateNonPreemptive(processList, contextSwitch, sorter) {
+  const jobs = makeJobs(processList);
+  let time = 0;
+  let completed = 0;
+  let previousProcess = null;
+  let contextSwitches = 0;
+  const timeline = [];
+  const safetyLimit = getSafetyLimit(jobs);
+
+  while (completed < jobs.length && time <= safetyLimit) {
+    const ready = jobs.filter((job) => job.arrival <= time && job.remaining > 0).sort(sorter);
+
+    if (ready.length === 0) {
+      time = addIdleBlock(jobs, timeline, time);
+      previousProcess = null;
+      continue;
+    }
+
+    const current = ready[0];
+
+    if (previousProcess && previousProcess !== current.id && contextSwitch > 0) {
+      addContextSwitch(timeline, time, contextSwitch);
+      time += contextSwitch;
+      contextSwitches++;
+    }
+
+    if (current.firstStart === null) current.firstStart = time;
+
+    const runTime = current.remaining;
+    addRunBlock(timeline, current, time, runTime);
+    time += runTime;
+    current.remaining = 0;
+    current.completion = time;
+    completed++;
+    previousProcess = current.id;
+  }
+
+  return finalizeSimulation(jobs, timeline, contextSwitches, time, safetyLimit);
+}
+
+function simulateRR(processList, quantum, contextSwitch) {
+  const jobs = makeJobs(processList).sort((a, b) => a.arrival - b.arrival || a.id.localeCompare(b.id));
+  const readyQueue = [];
+  const timeline = [];
+  let time = 0;
+  let completed = 0;
+  let index = 0;
+  let previousProcess = null;
+  let contextSwitches = 0;
+  const safetyLimit = getSafetyLimit(jobs);
+
+  while (completed < jobs.length && time <= safetyLimit) {
+    while (index < jobs.length && jobs[index].arrival <= time) {
+      readyQueue.push(jobs[index]);
+      index++;
+    }
+
+    if (readyQueue.length === 0) {
+      if (index < jobs.length) {
+        timeline.push({
+          id: "Idle",
+          service: "CPU Idle",
+          start: time,
+          end: jobs[index].arrival,
+          color: colors.Idle
+        });
+        time = jobs[index].arrival;
+        previousProcess = null;
+        continue;
+      }
+      break;
+    }
+
+    const current = readyQueue.shift();
+
+    if (previousProcess && previousProcess !== current.id && contextSwitch > 0) {
+      addContextSwitch(timeline, time, contextSwitch);
+      time += contextSwitch;
+      contextSwitches++;
+
+      while (index < jobs.length && jobs[index].arrival <= time) {
+        readyQueue.push(jobs[index]);
+        index++;
+      }
+    }
+
+    if (current.firstStart === null) current.firstStart = time;
+
+    const runTime = Math.min(quantum, current.remaining);
+    addRunBlock(timeline, current, time, runTime);
+    time += runTime;
+    current.remaining -= runTime;
+
+    while (index < jobs.length && jobs[index].arrival <= time) {
+      readyQueue.push(jobs[index]);
+      index++;
+    }
+
+    if (current.remaining === 0) {
+      current.completion = time;
+      completed++;
+    } else {
+      readyQueue.push(current);
+    }
+
+    previousProcess = current.id;
+  }
+
+  return finalizeSimulation(jobs, timeline, contextSwitches, time, safetyLimit);
+}
+
+function makeJobs(processList) {
+  return processList.map((process) => ({
+    ...process,
+    remaining: process.burst,
+    completion: process.burst === 0 ? process.arrival : null,
+    firstStart: process.burst === 0 ? process.arrival : null,
+    lastQueuedAt: process.arrival
+  }));
+}
+
+function getSafetyLimit(jobs) {
+  const totalBurst = jobs.reduce((sum, job) => sum + job.burst, 0);
+  const lastArrival = Math.max(...jobs.map((job) => job.arrival));
+  return Math.max(1000, totalBurst * 20 + lastArrival + 1000);
+}
+
+function addIdleBlock(jobs, timeline, time) {
+  const pendingArrivals = jobs.filter((job) => job.remaining > 0).map((job) => job.arrival);
+  const nextArrival = Math.min(...pendingArrivals);
+
+  timeline.push({
+    id: "Idle",
+    service: "CPU Idle",
+    start: time,
+    end: nextArrival,
+    color: colors.Idle
+  });
+
+  return nextArrival;
+}
+
+function addContextSwitch(timeline, time, contextSwitch) {
+  timeline.push({
+    id: "CS",
+    service: "Context Switch",
+    start: time,
+    end: time + contextSwitch,
+    color: colors.CS
+  });
+}
+
+function addRunBlock(timeline, current, time, runTime) {
+  if (runTime <= 0) return;
+
+  timeline.push({
+    id: current.id,
+    service: current.service,
+    start: time,
+    end: time + runTime,
+    color: current.color
+  });
+}
+
+function getNextHigherPriorityArrival(jobs, current, time) {
+  const arrivals = jobs
+    .filter((job) => job.arrival > time && job.remaining > 0 && job.priority < current.priority)
+    .map((job) => job.arrival);
+
+  if (arrivals.length === 0) return null;
+  return Math.min(...arrivals);
+}
+
+function finalizeSimulation(jobs, timeline, contextSwitches, time, safetyLimit) {
+  const stopped = jobs.some((job) => job.remaining > 0) || time > safetyLimit;
+  const starved = jobs.filter((job) => job.remaining > 0).map((job) => job.id);
+
   const results = jobs.map((job) => {
-    const turnaround = job.completion - job.arrival;
-    const waiting = turnaround - job.burst;
-    const response = job.firstStart - job.arrival;
+    const completion = job.completion ?? time;
+    const turnaround = completion - job.arrival;
+    const waiting = Math.max(0, turnaround - job.burst);
+    const contextOverhead = countContextOverheadForProcess(timeline, job.id);
 
     return {
       id: job.id,
-      service: job.service,
       arrival: job.arrival,
       burst: job.burst,
-      completion: job.completion,
+      completion,
       turnaround,
       waiting,
-      response
+      contextOverhead
     };
   });
 
-  return { timeline, results, contextSwitches };
+  return {
+    timeline,
+    results,
+    contextSwitches,
+    totalCompletionTime: time,
+    stopped,
+    starved
+  };
+}
+
+function countContextOverheadForProcess(timeline, processId) {
+  let overhead = 0;
+
+  timeline.forEach((item, index) => {
+    if (item.id === "CS") {
+      const previous = timeline[index - 1];
+      const next = timeline[index + 1];
+
+      if ((previous && previous.id === processId) || (next && next.id === processId)) {
+        overhead += item.end - item.start;
+      }
+    }
+  });
+
+  return overhead;
 }
 
 function runSimulation() {
   if (!validateInputs()) return;
 
+  const algorithm = algorithmSelect.value;
   const quantum = Number(quantumInput.value);
-  const contextSwitchTime = Number(contextInput.value);
+  const contextSwitch = Number(contextInput.value);
   const limit = Number(limitInput.value);
 
-  lastSimulation = simulatePriorityRR(processes, quantum, contextSwitchTime);
+  if (algorithm === "priority_rr") {
+    lastSimulation = simulatePriorityRR(processes, quantum, contextSwitch);
+  }
+
+  if (algorithm === "non_preemptive_priority") {
+    lastSimulation = simulateNonPreemptivePriority(processes, contextSwitch);
+  }
+
+  if (algorithm === "rr") {
+    lastSimulation = simulateRR(processes, quantum, contextSwitch);
+  }
+
+  if (algorithm === "fcfs") {
+    lastSimulation = simulateFCFS(processes, contextSwitch);
+  }
+
+  if (algorithm === "sjf") {
+    lastSimulation = simulateSJF(processes, contextSwitch);
+  }
 
   emptyState.classList.add("hidden");
   resultsArea.classList.remove("hidden");
-  calculationSection.classList.remove("hidden");
+  calculationPanel.classList.remove("hidden");
+  stickySummary.classList.remove("hidden");
 
   renderSummary(lastSimulation);
   renderLegend();
-  renderGanttChart(lastSimulation.timeline, limit);
+  renderGantt(lastSimulation.timeline, limit);
   renderResults(lastSimulation.results);
-  renderExplanation();
+  renderLimitWarning(lastSimulation, limit);
+  updateUrlState();
 }
 
 function renderSummary(simulation) {
-  const totalBurst = simulation.results.reduce((sum, item) => sum + item.burst, 0);
-  const finalTime = Math.max(...simulation.timeline.map((item) => item.end));
-  const cpuUtilization = finalTime > 0 ? (totalBurst / finalTime) * 100 : 0;
+  const avgWaiting = average(simulation.results.map((r) => r.waiting));
+  const avgTurnaround = average(simulation.results.map((r) => r.turnaround));
+  const totalBurst = simulation.results.reduce((sum, r) => sum + r.burst, 0);
+  const cpuUtilization = simulation.totalCompletionTime > 0
+    ? (totalBurst / simulation.totalCompletionTime) * 100
+    : 0;
 
-  summaryAvgWaiting.textContent = `${average(simulation.results.map((item) => item.waiting)).toFixed(2)} ms`;
-  summaryAvgTurnaround.textContent = `${average(simulation.results.map((item) => item.turnaround)).toFixed(2)} ms`;
-  summaryContextSwitches.textContent = simulation.contextSwitches;
-  summaryCpuUtilization.textContent = `${cpuUtilization.toFixed(1)}%`;
+  avgWaitingCard.textContent = `${avgWaiting.toFixed(2)} ms`;
+  avgTurnaroundCard.textContent = `${avgTurnaround.toFixed(2)} ms`;
+  contextSwitchCard.textContent = simulation.contextSwitches;
+  completionTimeCard.textContent = `${simulation.totalCompletionTime} ms`;
+
+  stickyAvgWaiting.textContent = `${avgWaiting.toFixed(2)} ms`;
+  stickyAvgTurnaround.textContent = `${avgTurnaround.toFixed(2)} ms`;
+  stickyCpuUtilization.textContent = `${cpuUtilization.toFixed(1)}%`;
+  stickyCompletion.textContent = `${simulation.totalCompletionTime} ms`;
 }
 
 function renderLegend() {
   ganttLegend.innerHTML = "";
 
   const items = [
-    ...processes.map((process, index) => ({
+    ...processes.map((process) => ({
       label: `${process.id} = ${process.service}`,
-      color: process.color || processColors[index % processColors.length]
+      color: process.color
     })),
-    { label: "CS = Context Switch", color: "#E5E7EB" }
+    { label: "CS = Context Switch", color: colors.CS }
   ];
 
   items.forEach((item) => {
-    const legendItem = document.createElement("div");
-    legendItem.className = "legend-item";
+    const element = document.createElement("div");
+    element.className = "legend-item";
 
-    legendItem.innerHTML = `
+    element.innerHTML = `
       <span class="legend-color" style="background:${item.color}"></span>
       <span>${item.label}</span>
     `;
 
-    ganttLegend.appendChild(legendItem);
+    ganttLegend.appendChild(element);
   });
 }
 
-function renderGanttChart(timeline, limit) {
+function renderGantt(timeline, limit) {
   ganttChart.innerHTML = "";
 
-  const visibleTimeline = clipTimeline(mergeTimeline(timeline), limit);
+  const visible = timeline
+    .filter((item) => item.start < limit)
+    .map((item) => ({ ...item, end: Math.min(item.end, limit) }))
+    .filter((item) => item.end > item.start);
 
-  visibleTimeline.forEach((segment) => {
-    const duration = segment.end - segment.start;
+  visible.forEach((item) => {
+    const duration = item.end - item.start;
     const block = document.createElement("div");
 
     block.className = "gantt-block";
-    block.style.background = segment.color;
+    block.style.background = item.color;
     block.style.flex = String(Math.max(duration, 1));
 
     block.dataset.tooltip =
-      `Process: ${segment.id}\n` +
-      `Name: ${segment.service}\n` +
-      `Start: ${segment.start} ms\n` +
-      `End: ${segment.end} ms\n` +
-      `Duration: ${duration} ms`;
+      `Process ID: ${item.id}\n` +
+      `Start Time: ${item.start} ms\n` +
+      `End Time: ${item.end} ms\n` +
+      `Burst Consumed: ${duration} ms`;
 
     block.innerHTML = `
-      <strong>${segment.id}</strong>
-      <span>${segment.service}</span>
-      <span class="time">${segment.start} - ${segment.end} ms</span>
+      <strong>${item.id}</strong>
+      <span>${item.service}</span>
+      <span class="time">${item.start} - ${item.end} ms</span>
     `;
 
     ganttChart.appendChild(block);
@@ -333,27 +574,25 @@ function renderGanttChart(timeline, limit) {
 function renderResults(results) {
   resultTable.innerHTML = "";
 
-  const avgWaiting = average(results.map((item) => item.waiting));
   let totalTat = 0;
   let totalWt = 0;
-  let totalRt = 0;
+  let totalOverhead = 0;
 
   results.forEach((result) => {
     totalTat += result.turnaround;
     totalWt += result.waiting;
-    totalRt += result.response;
-
-    const waitingClass = result.waiting <= avgWaiting ? "waiting-good" : "waiting-bad";
+    totalOverhead += result.contextOverhead;
 
     const row = document.createElement("tr");
+
     row.innerHTML = `
       <td><strong>${result.id}</strong></td>
       <td>${result.arrival} ms</td>
       <td>${result.burst} ms</td>
       <td>${result.completion} ms</td>
       <td>${result.turnaround} ms</td>
-      <td class="${waitingClass}">${result.waiting} ms</td>
-      <td>${result.response} ms</td>
+      <td>${result.waiting} ms</td>
+      <td>${result.contextOverhead} ms</td>
     `;
 
     resultTable.appendChild(row);
@@ -361,61 +600,27 @@ function renderResults(results) {
 
   avgTat.textContent = `${(totalTat / results.length).toFixed(2)} ms`;
   avgWt.textContent = `${(totalWt / results.length).toFixed(2)} ms`;
-  avgRt.textContent = `${(totalRt / results.length).toFixed(2)} ms`;
+  totalContextOverhead.textContent = `${totalOverhead} ms`;
 }
 
-function renderExplanation() {
-  const highest = [...processes].sort((a, b) => a.priority - b.priority)[0];
+function renderLimitWarning(simulation, limit) {
+  const unfinishedByLimit = simulation.results
+    .filter((result) => result.completion > limit)
+    .map((result) => result.id);
 
-  const duplicatePriorities = processes
-    .filter((process, index, arr) =>
-      arr.some((other, otherIndex) => other.priority === process.priority && otherIndex !== index)
-    )
-    .map((process) => process.id);
+  if (simulation.stopped && simulation.starved.length > 0) {
+    limitWarning.textContent = `Simulation stopped at limit ${limit} ms. Process ${simulation.starved.join(", ")} starved.`;
+    limitWarning.classList.remove("hidden");
+    return;
+  }
 
-  const rrText = duplicatePriorities.length
-    ? `${[...new Set(duplicatePriorities)].join(", ")} share priority levels, so Round Robin is used for tie-breaking.`
-    : `No equal-priority conflict was found, so execution mainly follows priority order.`;
+  if (unfinishedByLimit.length > 0) {
+    limitWarning.textContent = `Chart stopped at ${limit} ms. Process ${unfinishedByLimit.join(", ")} continues after the visible chart limit.`;
+    limitWarning.classList.remove("hidden");
+    return;
+  }
 
-  logicExplanation.innerHTML = `
-    <p>
-      <strong>How scheduling works:</strong>
-      ${highest.id} executes first because it has the highest priority. ${rrText}
-      A context switch is added whenever the CPU changes from one process to another.
-    </p>
-  `;
-}
-
-function mergeTimeline(timeline) {
-  const merged = [];
-
-  timeline.forEach((segment) => {
-    const previous = merged[merged.length - 1];
-
-    if (
-      previous &&
-      previous.id === segment.id &&
-      previous.end === segment.start &&
-      !segment.isContextSwitch &&
-      !segment.isIdle
-    ) {
-      previous.end = segment.end;
-    } else {
-      merged.push({ ...segment });
-    }
-  });
-
-  return merged;
-}
-
-function clipTimeline(timeline, limit) {
-  return timeline
-    .filter((segment) => segment.start < limit)
-    .map((segment) => ({
-      ...segment,
-      end: Math.min(segment.end, limit)
-    }))
-    .filter((segment) => segment.end > segment.start);
+  limitWarning.classList.add("hidden");
 }
 
 function average(values) {
@@ -423,91 +628,85 @@ function average(values) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function requiresQuantum() {
+  return algorithmSelect.value === "priority_rr" || algorithmSelect.value === "rr";
+}
+
+function updateQuantumVisibility() {
+  const enabled = requiresQuantum();
+  quantumInput.disabled = !enabled;
+  quantumLabel.style.opacity = enabled ? "1" : "0.55";
+}
+
+function updateHeroAlgorithm() {
+  const labels = {
+    priority_rr: "Priority + RR",
+    non_preemptive_priority: "Priority",
+    rr: "Round Robin",
+    fcfs: "FCFS",
+    sjf: "SJF"
+  };
+
+  heroAlgorithm.textContent = labels[algorithmSelect.value];
+}
+
+function showAlgorithmInfo(show) {
+  if (!show) {
+    algorithmInfoBox.classList.add("hidden");
+    return;
+  }
+
+  const info = {
+    priority_rr: "Preemptive Priority + RR: The highest-priority ready process runs first. If multiple ready processes have the same priority, they share CPU time using the selected quantum.",
+    non_preemptive_priority: "Non-Preemptive Priority: The ready process with the highest priority runs until completion. Lower priority number means higher priority.",
+    rr: "Round Robin: All ready processes receive equal CPU time in cyclic order using the selected time quantum.",
+    fcfs: "FCFS: First Come First Serve executes processes in the order of their arrival time.",
+    sjf: "SJF: Shortest Job First selects the ready process with the smallest burst time."
+  };
+
+  algorithmInfoBox.textContent = info[algorithmSelect.value];
+  algorithmInfoBox.classList.remove("hidden");
+}
+
 function showEmptyState() {
   lastSimulation = null;
   emptyState.classList.remove("hidden");
   resultsArea.classList.add("hidden");
-  calculationSection.classList.add("hidden");
+  calculationPanel.classList.add("hidden");
+  stickySummary.classList.add("hidden");
 }
 
 function resetDefaults() {
   processes = structuredClone(defaultProcesses);
+  algorithmSelect.value = "priority_rr";
   quantumInput.value = 4;
   contextInput.value = 1;
   limitInput.value = 30;
-  renderProcessTable();
-  showEmptyState();
-}
-
-function loadScenario(type) {
-  if (type === "equal") {
-    processes = structuredClone(defaultProcesses);
-  }
-
-  if (type === "samePriority") {
-    processes = [
-      { id: "P1", service: "Registration", priority: 2, arrival: 0, burst: 8, color: processColors[0] },
-      { id: "P2", service: "Backup", priority: 3, arrival: 0, burst: 10, color: processColors[1] },
-      { id: "P3", service: "Attendance", priority: 1, arrival: 0, burst: 6, color: processColors[2] },
-      { id: "P4", service: "Report", priority: 2, arrival: 0, burst: 7, color: processColors[3] }
-    ];
-  }
-
-  if (type === "starvation") {
-    processes = [
-      { id: "P1", service: "High Priority", priority: 1, arrival: 0, burst: 18, color: processColors[0] },
-      { id: "P2", service: "Backup", priority: 5, arrival: 0, burst: 10, color: processColors[1] },
-      { id: "P3", service: "Security", priority: 2, arrival: 0, burst: 12, color: processColors[2] },
-      { id: "P4", service: "Report", priority: 4, arrival: 0, burst: 8, color: processColors[3] }
-    ];
-  }
-
-  if (type === "highSwitch") {
-    processes = [
-      { id: "P1", service: "Service A", priority: 1, arrival: 0, burst: 5, color: processColors[0] },
-      { id: "P2", service: "Service B", priority: 1, arrival: 0, burst: 5, color: processColors[1] },
-      { id: "P3", service: "Service C", priority: 1, arrival: 0, burst: 5, color: processColors[2] },
-      { id: "P4", service: "Service D", priority: 1, arrival: 0, burst: 5, color: processColors[3] }
-    ];
-  }
 
   renderProcessTable();
+  updateQuantumVisibility();
+  updateHeroAlgorithm();
+  showAlgorithmInfo(false);
   showEmptyState();
-}
-
-function copyResultsTable() {
-  if (!lastSimulation) return alert("Run the simulation first.");
-
-  const rows = [
-    ["Process", "Arrival", "Burst", "Completion", "Turnaround", "Waiting", "Response Time"],
-    ...lastSimulation.results.map((result) => [
-      result.id,
-      result.arrival,
-      result.burst,
-      result.completion,
-      result.turnaround,
-      result.waiting,
-      result.response
-    ])
-  ];
-
-  navigator.clipboard.writeText(rows.map((row) => row.join("\t")).join("\n"));
-  alert("Results table copied.");
+  updateUrlState();
 }
 
 function downloadCSV() {
-  if (!lastSimulation) return alert("Run the simulation first.");
+  if (!lastSimulation) {
+    alert("Run the simulation first.");
+    return;
+  }
 
   const rows = [
-    ["Process", "Arrival", "Burst", "Completion", "Turnaround", "Waiting", "Response Time"],
-    ...lastSimulation.results.map((result) => [
-      result.id,
-      result.arrival,
-      result.burst,
-      result.completion,
-      result.turnaround,
-      result.waiting,
-      result.response
+    ["Process", "Arrival", "Burst", "Completion", "Turnaround", "Waiting", "Context Switch Overhead"],
+    ...lastSimulation.results.map((r) => [
+      r.id,
+      r.arrival,
+      r.burst,
+      r.completion,
+      r.turnaround,
+      r.waiting,
+      r.contextOverhead
     ])
   ];
 
@@ -523,49 +722,77 @@ function downloadCSV() {
   URL.revokeObjectURL(url);
 }
 
-function downloadGanttPNG() {
-  if (!lastSimulation) return alert("Run the simulation first.");
+function downloadPNG() {
+  if (!lastSimulation) {
+    alert("Run the simulation first.");
+    return;
+  }
 
-  const visibleTimeline = clipTimeline(mergeTimeline(lastSimulation.timeline), Number(limitInput.value));
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
+  const visible = lastSimulation.timeline
+    .filter((item) => item.start < Number(limitInput.value))
+    .map((item) => ({ ...item, end: Math.min(item.end, Number(limitInput.value)) }))
+    .filter((item) => item.end > item.start);
 
   const blockWidth = 120;
-  const blockHeight = 70;
+  const blockHeight = 64;
   const gap = 8;
-  const padding = 24;
+  const padding = 28;
 
-  canvas.width = Math.max(900, padding * 2 + visibleTimeline.length * (blockWidth + gap));
-  canvas.height = 170;
+  canvas.width = Math.max(1000, padding * 2 + visible.length * (blockWidth + gap));
+  canvas.height = 420;
 
   ctx.fillStyle = "#fffdf8";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = "#202833";
-  ctx.font = "bold 20px Arial";
-  ctx.fillText("CPU Scheduling Gantt Chart", padding, 32);
+  ctx.fillStyle = "#1f2933";
+  ctx.font = "bold 24px Arial";
+  ctx.fillText("CPU Scheduling Simulator", padding, 34);
 
-  visibleTimeline.forEach((segment, index) => {
+  ctx.font = "14px Arial";
+  ctx.fillText(`Algorithm: ${algorithmSelect.options[algorithmSelect.selectedIndex].text}`, padding, 62);
+  ctx.fillText(`Quantum: ${requiresQuantum() ? quantumInput.value + " ms" : "Not required"}   Context Switch: ${contextInput.value} ms   Chart Limit: ${limitInput.value} ms`, padding, 84);
+
+  ctx.font = "bold 15px Arial";
+  ctx.fillText("Input Configuration", padding, 120);
+
+  ctx.font = "13px Arial";
+  processes.forEach((p, index) => {
+    ctx.fillText(`${p.id}: arrival ${p.arrival} ms, burst ${p.burst} ms, priority ${p.priority}`, padding, 145 + index * 20);
+  });
+
+  const summaryY = 255;
+  ctx.font = "bold 15px Arial";
+  ctx.fillText("Averages", padding, summaryY);
+  ctx.font = "13px Arial";
+  ctx.fillText(`Average Waiting: ${avgWaitingCard.textContent}`, padding, summaryY + 24);
+  ctx.fillText(`Average Turnaround: ${avgTurnaroundCard.textContent}`, padding + 230, summaryY + 24);
+  ctx.fillText(`Context Switches: ${contextSwitchCard.textContent}`, padding + 500, summaryY + 24);
+  ctx.fillText(`Completion Time: ${completionTimeCard.textContent}`, padding + 710, summaryY + 24);
+
+  const chartY = 320;
+
+  visible.forEach((item, index) => {
     const x = padding + index * (blockWidth + gap);
-    const y = 58;
 
-    ctx.fillStyle = segment.color;
-    roundRect(ctx, x, y, blockWidth, blockHeight, 14);
+    ctx.fillStyle = item.color;
+    roundRect(ctx, x, chartY, blockWidth, blockHeight, 12);
     ctx.fill();
 
     ctx.strokeStyle = "#c9c0b2";
     ctx.stroke();
 
-    ctx.fillStyle = "#202833";
-    ctx.font = "bold 15px Arial";
-    ctx.fillText(segment.id, x + 12, y + 26);
+    ctx.fillStyle = "#1f2933";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText(item.id, x + 10, chartY + 24);
 
     ctx.font = "12px Arial";
-    ctx.fillText(`${segment.start} - ${segment.end} ms`, x + 12, y + 52);
+    ctx.fillText(`${item.start} - ${item.end} ms`, x + 10, chartY + 48);
   });
 
   const link = document.createElement("a");
-  link.download = "gantt-chart.png";
+  link.download = "cpu-scheduling-simulation.png";
   link.href = canvas.toDataURL("image/png");
   link.click();
 }
@@ -584,5 +811,54 @@ function roundRect(ctx, x, y, width, height, radius) {
   ctx.closePath();
 }
 
+function updateUrlState() {
+  const params = new URLSearchParams();
+
+  params.set("algorithm", algorithmSelect.value);
+  params.set("quantum", quantumInput.value);
+  params.set("context", contextInput.value);
+  params.set("limit", limitInput.value);
+
+  processes.forEach((p) => {
+    params.set(p.id.toLowerCase(), `${p.arrival},${p.burst},${p.priority}`);
+  });
+
+  const newUrl = `${window.location.pathname}?${params.toString()}`;
+  window.history.replaceState({}, "", newUrl);
+}
+
+function loadUrlState() {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.has("algorithm")) algorithmSelect.value = params.get("algorithm");
+  if (params.has("quantum")) quantumInput.value = params.get("quantum");
+  if (params.has("context")) contextInput.value = params.get("context");
+  if (params.has("limit")) limitInput.value = params.get("limit");
+
+  processes = processes.map((process) => {
+    const value = params.get(process.id.toLowerCase());
+
+    if (!value) return process;
+
+    const [arrival, burst, priority] = value.split(",").map(Number);
+
+    return {
+      ...process,
+      arrival: Number.isFinite(arrival) ? arrival : process.arrival,
+      burst: Number.isFinite(burst) ? burst : process.burst,
+      priority: Number.isFinite(priority) ? priority : process.priority
+    };
+  });
+}
+
+function copyShareUrl() {
+  updateUrlState();
+  navigator.clipboard.writeText(window.location.href);
+  alert("Share URL copied.");
+}
+
+loadUrlState();
 renderProcessTable();
+updateQuantumVisibility();
+updateHeroAlgorithm();
 showEmptyState();
